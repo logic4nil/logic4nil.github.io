@@ -32,6 +32,7 @@ def tree(dirpath, level=0):
 
 
 def main():
+    print "."
     tree(".", 0)
 
     pass
