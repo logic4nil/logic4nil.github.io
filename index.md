@@ -4,6 +4,7 @@
 \|&emsp;&emsp;\|&emsp;&emsp;\|---- [tensorflow搭建入门](./ML/tensorflow/tensorflow搭建入门.md)  
 \|&emsp;&emsp;\|---- [DGA域名识别](./ML/DGA域名识别.md)  
 \|&emsp;&emsp;\|---- [jieba](./ML/jieba.md)  
+\|&emsp;&emsp;\|---- [rnn](./ML/rnn.md)  
 \|&emsp;&emsp;\|---- [word2vec](./ML/word2vec.md)  
 \|&emsp;&emsp;\|---- [激活函数](./ML/激活函数.md)  
 \|---- [NoSQL](./NoSQL.md)  
