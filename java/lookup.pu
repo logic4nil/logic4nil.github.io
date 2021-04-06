@@ -1,0 +1,39 @@
+@startuml
+
+participant LookupListeningResource
+participant LookupReferencesManager
+
+== manager start ==
+
+LookupReferencesManager ->  LookupReferencesManager : loadAllLookupsAndInitStateRef()
+
+loop foreach LookupUpdateState
+
+LookupReferencesManager -> LookupExtractorFactoryContainer
+LookupExtractorFactoryContainer -> LookupExtractorFactory: start()
+LookupExtractorFactory -> Entry: new
+Entry -> CacheScheduler : schedule() 添加Load任务(Entry)到CacheScheduler线程
+CacheScheduler -> Entry: Entry.updateCache()
+
+    group entry.updateCache()
+        Entry -> CacheGenerator: cacheGenerator.generateCache()
+        note right:CacheGenerator 为URI/JDBC等
+        CacheGenerator -> CacheScheduler : createVersionedCache()
+        CacheScheduler -> NamespaceExtractionCacheManager : NamespaceExtractionCacheManager.createCache()
+        note right : NamespaceExtractionCacheManager 为OnHeap/OffHeap
+        NamespaceExtractionCacheManager -> CacheScheduler
+        CacheScheduler -> CacheGenerator: return versioncache
+        CacheGenerator -> Entry: return versioncache with data
+        Entry -> Entry : swapCacheState()
+    end
+
+end
+
+== Web Service ==
+
+LookupListeningResource -> LookupReferencesManager : HTTP: call manager.method
+LookupReferencesManager -> LookupReferencesManager : Add LoadData/Drop To LookupUpdateState
+LookupReferencesManager -> LookupListeningResource : Http Success
+
+@enduml
+
