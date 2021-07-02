@@ -1,0 +1,24 @@
+
+
+cardinality repetitive columnar decompose component track intelligently maximize opportunity
+
+
+cmu-advanced-database-system: 09-olapindexes.pdf
+1. 数据仓库模型：start schema vs snowflake schema
+    snowflake schema，保持数据一致性等问题上，问题比较多。唯独表的update
+2. 列式存储- columnar indexes
+	字典编码：dictionary encoding
+	数据压缩：RUN-LENGTH ENCODING，对稍有或者全排序的列使用效果最佳
+	采用delta store方式实现数据的INSERT UPDATE DELETE
+		DELETE使用bitmap标主，这就要求数据必须有row id
+	BITMAP INDEXES:  可以理解为倒排索引
+		实现方式：
+			Equality Encoding
+			Range Encoding
+			Hierarchical Encoding，有点类似skip list,不同点在于节点内容，skip list节点为value, 这个为Bitmap
+			Bit-sliced Encoding
+		BITMAP通过bit标识数据的row id，数据量巨大，需要使用压缩
+		压缩：
+			标准压缩算法
+			Byte-aligned Bitmap Code，原理上有点类似Run-Length Encoding，不支持随机访问，需要解压之后才可以使用
+			Roaring Bitmaps: Spark、Hive、Lucene
