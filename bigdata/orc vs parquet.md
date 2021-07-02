@@ -2,6 +2,7 @@
 https://www.huaweicloud.com/articles/76e423ad4ee18b909b7788c8d8004d1a.html
 ## Format
 ![ORC](./orc.png)
+![ORC](./orc_1.jpg)
 
 ```
 Stripes:  
@@ -38,7 +39,7 @@ Footer:
 	再根据includes数据决定需要从这些row group中读取的列，通过这两层的过滤需要读取的数据只是整个stripe多个小段的区间，然后ORC会尽可能合并多个离散的区间尽可能的减少I/O次数。
 	然后再根据index中保存的下一个row group的位置信息调至该stripe中第一个需要读取的row group中。
 
-	由于ORC中使用了更加精确的索引信息，使得在读取数据时可以指定从任意一行开始读取，更细粒度的统计信息使得读取ORC文件跳过整个row group，
+	由于ORC中使用了更加精确的索引信息，使得在读取数据时可以指定从任意一Row Group开始读取，更细粒度的统计信息使得读取ORC文件跳过整个row group，
 	ORC默认会对任何一块数据和索引信息使用ZLIB压缩，因此ORC文件占用的存储空间也更小，这点在后面的测试对比中也有所印证。
 
 	在新版本的ORC中也加入了对Bloom Filter的支持，它可以进一步提升谓词下推的效率，在Hive 1.2.0版本以后也加入了对此的支持。
@@ -48,3 +49,5 @@ Footer:
 ![Parquet](./parquet.png)
 
 
+# all
+![all](./all.jpg)
