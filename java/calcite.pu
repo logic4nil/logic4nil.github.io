@@ -1,0 +1,20 @@
+@startuml
+
+AvaticaConnection -> AvaticaStatement : createStatement
+' AvaticaStatement <-  AvaticaConnection: return Statement
+AvaticaStatement -> AvaticaStatement: executeQuery
+AvaticaStatement -> AvaticaStatement: executeInternal
+
+
+' AvaticaStatement -> ResultSet : executeQuery
+
+    group executeInternal
+        AvaticaConnection -> ExecuteResult: prepareAndExecuteInternal
+        group prepareAndExecuteInternal
+            CalciteMetaImp -> ExecuteResult: prepareAndExecuteInternal
+            CalciteConnectionImpl -> CalciteSignature: parseQuery
+        end
+    end
+
+
+@enduml
