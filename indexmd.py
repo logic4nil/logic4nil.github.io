@@ -18,22 +18,23 @@ def tree(dirpath, level=0):
     for d in sorted(dirs.items(), key=lambda d:d[0]):
         line = ""
         for i in range(level):
-            line += "\|" + "&emsp;"*2
-        line += "\|%s [%s](%s)  " % ("-" * 4, d[0], d[1])
+            line += " " * 3
+        line += "* [%s](%s)  " % (d[0], d[1])
         print line
         tree(d[1], level+1)
 
     for f in sorted(files.items(), key=lambda d:d[0]):
         line = ""
         for i in range(level):
-            line += "\|" + "&emsp;"*2
-        line +=  "\|%s [%s](%s)  " % ("-" * 4, f[0], f[1])
+            line += " " * 3
+        line +=  "* [%s](%s)  " % (f[0], f[1])
         print line
 
 
 def main():
-    print ".  "
-    tree(".", 0)
+    print "# logic4nil"
+    print "## 记录"
+    tree(".")
 
     pass
 
