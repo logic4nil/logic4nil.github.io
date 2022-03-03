@@ -19,7 +19,7 @@ def tree(dirpath, level=0):
         line = ""
         for i in range(level):
             line += " " * 3
-        line += "* [%s](%s)  " % (d[0], d[1])
+        line += "* %s  " % (d[0], )
         print line
         tree(d[1], level+1)
 
