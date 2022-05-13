@@ -1,0 +1,124 @@
+@startuml
+
+
+abstract AbstractUdfStreamOperator {
+    userFunction Function
+}
+
+class SimpleOperatorFactory {
+    operator StreamOperator
+}
+
+class OneInputTransformation {
+    input Transformation
+    operatorFactory StreamOperatorFactory
+}
+
+class DataStream {
+    transformation Transformation
+}
+
+interface StreamOperator
+interface OneInputStreamOperator extends StreamOperator
+abstract AbstractUdfStreamOperator implements OneInputStreamOperator
+class StreamFilter extends AbstractUdfStreamOperator
+
+abstract AbstractStreamOperatorFactory
+class SimpleOperatorFactory extends AbstractStreamOperatorFactory
+
+abstract Transformation
+class PhysicalTransformation extends Transformation
+class OneInputTransformation extends PhysicalTransformation
+
+
+class DataStream
+class SingleOutputStreamOperator extends DataStream
+class DataStreamSource extends SingleOutputStreamOperator
+
+
+
+class StreamExecutionEnvironment {
+    transformations List<Transformation>
+    StreamGraph : getStreamGraph()
+}
+
+class StreamNode {
+    operatorFactory StreamOperatorFactory
+    transformationId
+    outEdges List<StreamEdge>
+    inEdges List<StreamEdge>
+    vertexClass Class<? extends AbstractInvokable>
+}
+
+class StreamEdge {
+    upstreamNode StreamNode
+    downstreamNode StreamNode
+    partitioner StreamPartitioner
+}
+
+class StreamGraph {
+    streamNodes Map<Integer, StreamNode>
+}
+
+class JobEdge {
+    target JobVertex
+    source IntermediateDataSet
+}
+
+class IntermediateDataSet {
+    producer JobVertex
+    resultType ResultPartitionType
+}
+
+class JobVertex {
+    inputs ArrayList<JobEdge>
+    operatorIDs List<OperatorIDPair>
+    result ArrayList<IntermediateDataSet>
+}
+
+class JobGraph{
+
+}
+
+class ExecutionGraphFactory {
+    createAndRestoreExecutionGraph
+}
+
+class DefaultScheduler implements SchedulerNG{
+    executionGraphFactory ExecutionGraphFactory
+}
+
+class JobMaster {
+    jobGraph JobGraph
+    schedulerNG SchedulerNG
+    resourceManagerGateway ResourceManagerConnection     
+}
+
+class ResourceManager {
+    slotManager SlotManager
+}
+
+class ExecutionJobVertex {
+    taskVertices ExecutionVertex[]
+    producedDataSets IntermediateResult[]
+    inputs List<IntermediateResult>
+}
+
+class ExecutionVertex {
+    jobVertex ExecutionJobVertex
+    currentExecution Execution
+
+    inputSplits ArrayList<InputSplit> 
+    resultPartitions Map<IntermediateResultPartitionID, IntermediateResultPartition>
+}
+
+class {
+    taskInfo MaybeOffloaded<TaskInformation>
+}
+
+class Execution {
+    deployment TaskDeploymentDescriptor
+    deploy() 
+}
+
+@enduml

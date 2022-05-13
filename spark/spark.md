@@ -83,7 +83,7 @@ Broadcast 不会内存溢出，因为其数据的保存的 Storage Level 是 MEM
 每次的action操作才会触发累加的加和。 同一个RDD多次执行action，会导致累加器翻倍
 
 
-## Yarn下执行流程
+## Yarn cluster下执行流程
 
 1. spark-submit，Client与ResoureManager建立会话
 2. ResourceManager找NodeManager分配资源，并创建和启动一个ApplicationMaster, ApplicationMaster启动后，会启动一个Driver

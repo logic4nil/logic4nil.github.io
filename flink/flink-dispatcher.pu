@@ -1,0 +1,7 @@
+@startuml
+
+Dispacher --> JobManagerRunner_JobMaster: jobManagerRunnerFactory.createJobManagerRunner
+
+JobManagerRunner_JobMaster --> SchedulerNG: SlotPoolServiceSchedulerFactory.createScheduler
+
+@enduml
