@@ -1,3 +1,8 @@
+---
+title: flink StreamGraph生成JobGraph
+tags: [flink]
+---
+
 # 简介
 本文将主要介绍 Flink 是如何将 StreamGraph 转换成 JobGraph 的。
 
