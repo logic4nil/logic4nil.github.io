@@ -10,14 +10,17 @@ class BiGRUWithCRF(nn.Layer):
                  emb_size, 
                  hidden_size,
                  word_num, # 需要编码的字数
-                 label_num):
+                 label_num,
+                 use_w2v_emb=False):
         super(BiGRUWithCRF, self).__init__()
 
-        # self.word_emb = nn.Embedding(word_num, emb_size)
 
         # 使用预训练模型
-        self.word_emb = TokenEmbedding(
-                extended_vocab_path='./data/word.dic', unknown_token='OOV')
+        if use_w2v_emb:
+            self.word_emb = TokenEmbedding(
+                    extended_vocab_path='./data/word.dic', unknown_token='OOV')
+        else:
+            self.word_emb = nn.Embedding(word_num, emb_size)
 
         self.emb_size = emb_size
         self.hidden_size = hidden_size

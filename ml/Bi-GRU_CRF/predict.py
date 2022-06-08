@@ -12,9 +12,6 @@ from paddlenlp.embeddings import TokenEmbedding
 from utils import *
 
 
-word_emb = TokenEmbedding(
-        extended_vocab_path='./data/word.dic', unknown_token='OOV')
-
 
 def predict(input_text):
     args = parse_args()

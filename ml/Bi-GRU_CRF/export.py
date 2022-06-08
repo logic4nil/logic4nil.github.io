@@ -10,10 +10,8 @@ if __name__ == "__main__":
     tag_vocab = load_dict("data/tag.dic")
     word_vocab = load_dict("data/word.dic")
 
-    m = BiGRUWithCRF(300, 300, len(word_vocab), len(tag_vocab))
-    param_state_dict = paddle.load("./results/final.pdparams")
-    m.set_state_dict(param_state_dict)
-
+    m = BiGRUWithCRF(300, 300, len(word_vocab), len(tag_vocab), True)
+    
     m.eval()
 
     m = paddle.jit.to_static(
@@ -26,3 +24,4 @@ if __name__ == "__main__":
             
     save_path = os.path.join("export", "inference")
     paddle.jit.save(m, save_path)
+

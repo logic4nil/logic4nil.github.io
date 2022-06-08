@@ -47,7 +47,10 @@ def do_train():
         collate_fn=batchify_fn
     )
 
-    network = BiGRUWithCRF(300, 300, len(word_vocab), len(tag_vocab))
+    use_w2v_emb = True
+
+    network = BiGRUWithCRF(300, 300, len(word_vocab), len(tag_vocab), use_w2v_emb)
+
     model = paddle.Model(network)
 
     optimizer = paddle.optimizer.Adam(learning_rate=0.001, parameters=model.parameters())

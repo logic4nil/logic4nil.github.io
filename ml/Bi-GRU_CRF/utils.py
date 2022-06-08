@@ -1,3 +1,4 @@
+import paddle
 from paddlenlp.datasets import MapDataset
 
 def load_dataset(datafiles):
@@ -53,18 +54,6 @@ def convert_example(example, word_vocab, tag_vocab):
 # 预测数据转换
 def convert_raw(raw_input, word_vocab):
     return convert_tokens_to_ids(raw_input, word_vocab)
-
-def load_embedding(embedding_file):
-    emb = paddle.nn.Embedding(word_num, emb_size)
-
-    para_state_dict = paddle.load(embedding_file)
-    emb.set_state_dict(para_state_dict)
-
-    return emb
-
-def save_embedding(emb, embedding_file):
-    state_dict = emb.state_dict()
-    paddle.save(state_dict, embedding_file)
 
 def parse_decodes(data, decodes, label_vocab):
     id_label = dict(zip(label_vocab.values(), label_vocab.keys()))
