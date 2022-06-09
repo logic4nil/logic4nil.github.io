@@ -6,6 +6,7 @@ from paddlenlp.datasets import MapDataset
 from paddlenlp.data import Stack, Tuple, Pad
 from paddlenlp.layers import LinearChainCrf, ViterbiDecoder, LinearChainCrfLoss
 from paddlenlp.metrics import ChunkEvaluator
+from paddlenlp.embeddings import TokenEmbedding
 
 # https://aistudio.baidu.com/aistudio/projectdetail/3571620?contributionType=1
 
@@ -133,10 +134,9 @@ model.prepare(optimizer, crf_loss, chunk_evaluator)
 
 model.fit(train_data=train_loader,
               eval_data=dev_loader,
-              epochs=1,
+              epochs=5,
               save_dir='./results',
-              log_freq=1)
-
+              log_freq=10)
 
 
 # 模型评估
@@ -181,69 +181,85 @@ print('\n'.join(preds[:5]))
 
 
 
+
 # PART C 优化进阶-使用预训练的词向量优化模型效果
 # 在Baseline版本中，我们调用了`paddle.nn.Embedding`获取词的向量表示，有如下特点....     
 # 这里，我们调用`paddlenlp.embeddings`中内置的向量表示`TokenEmbedding`，有如下特点...
 
 
-from paddlenlp.embeddings import TokenEmbedding # EMB
+## from paddlenlp.embeddings import TokenEmbedding # EMB
+## 
+## del model
+## del preds
+## del network
+## 
+## class BiGRUWithCRF2(nn.Layer):
+##     def __init__(self,
+##                  emb_size,
+##                  hidden_size,
+##                  word_num,
+##                  label_num,
+##                  use_w2v_emb=True):
+##         super(BiGRUWithCRF2, self).__init__()
+##         if use_w2v_emb:
+##             self.word_emb = TokenEmbedding(
+##                 extended_vocab_path='./data/word.dic', unknown_token='OOV')
+##         else:
+##             self.word_emb = nn.Embedding(word_num, emb_size)
+##         self.gru = nn.GRU(emb_size,
+##                           hidden_size,
+##                           num_layers=2,
+##                           direction='bidirectional')
+##         self.fc = nn.Linear(hidden_size * 2, label_num + 2)  # BOS EOS
+##         self.crf = LinearChainCrf(label_num)
+##         self.decoder = ViterbiDecoder(self.crf.transitions)
+## 
+##     def forward(self, x, lens):
+##         embs = self.word_emb(x)
+##         output, _ = self.gru(embs)
+##         output = self.fc(output)
+##         _, pred = self.decoder(output, lens)
+##         return output, lens, pred
+## 
+## 
+## 
+## network = BiGRUWithCRF2(300, 300, len(word_vocab), len(label_vocab))
+## model = paddle.Model(network)
+## optimizer = paddle.optimizer.Adam(learning_rate=0.001, parameters=model.parameters())
+## crf_loss = LinearChainCrfLoss(network.crf)
+## chunk_evaluator = ChunkEvaluator(label_list=label_vocab.keys(), suffix=True)
+## model.prepare(optimizer, crf_loss, chunk_evaluator)
+## 
+## 
+## 
+## model.fit(train_data=train_loader,
+##             eval_data=dev_loader,
+##             epochs=4,
+##             save_dir='./results',
+##             log_freq=1)
+## 
+## 
+## 
+## model.evaluate(eval_data=test_loader)
+## 
+## 
+## 
+## outputs, lens, decodes = model.predict(test_data=test_loader)
+## preds = parse_decodes(test_ds, decodes, lens, label_vocab)
+## 
+## print('\n'.join(preds[:5]))
 
-del model
-del preds
-del network
-
-class BiGRUWithCRF2(nn.Layer):
-    def __init__(self,
-                 emb_size,
-                 hidden_size,
-                 word_num,
-                 label_num,
-                 use_w2v_emb=True):
-        super(BiGRUWithCRF2, self).__init__()
-        if use_w2v_emb:
-            self.word_emb = TokenEmbedding(
-                extended_vocab_path='./data/word.dic', unknown_token='OOV')
-        else:
-            self.word_emb = nn.Embedding(word_num, emb_size)
-        self.gru = nn.GRU(emb_size,
-                          hidden_size,
-                          num_layers=2,
-                          direction='bidirectional')
-        self.fc = nn.Linear(hidden_size * 2, label_num + 2)  # BOS EOS
-        self.crf = LinearChainCrf(label_num)
-        self.decoder = ViterbiDecoder(self.crf.transitions)
-
-    def forward(self, x, lens):
-        embs = self.word_emb(x)
-        output, _ = self.gru(embs)
-        output = self.fc(output)
-        _, pred = self.decoder(output, lens)
-        return output, lens, pred
 
 
+param_state_dict = paddle.load("./results/final.pdparams")
+network.set_state_dict(param_state_dict)
 
-network = BiGRUWithCRF2(300, 300, len(word_vocab), len(label_vocab))
-model = paddle.Model(network)
-optimizer = paddle.optimizer.Adam(learning_rate=0.001, parameters=model.parameters())
-crf_loss = LinearChainCrfLoss(network.crf)
-chunk_evaluator = ChunkEvaluator(label_list=label_vocab.keys(), suffix=True)
-model.prepare(optimizer, crf_loss, chunk_evaluator)
-
-
-
-model.fit(train_data=train_loader,
-            eval_data=dev_loader,
-            epochs=4,
-            save_dir='./results',
-            log_freq=1)
-
-
-
-model.evaluate(eval_data=test_loader)
-
-
-
-outputs, lens, decodes = model.predict(test_data=test_loader)
-preds = parse_decodes(test_ds, decodes, lens, label_vocab)
-
-print('\n'.join(preds[:5]))
+# 动转静，通过`input_spec`给出模型所需输入数据的描述，shape中的None代表可变的大小，类似上面静态图模式中的`paddle.static.data`
+model = paddle.jit.to_static(
+    network,
+    input_spec=[
+        paddle.static.InputSpec(
+            shape=[None, None], dtype="int64"),  # input_ids: [batch_size, max_seq_len]
+        paddle.static.InputSpec(
+            shape=[None], dtype="int64")
+])
