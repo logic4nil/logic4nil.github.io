@@ -1,0 +1,105 @@
+---
+title: Doris之存储
+tags: [Doris, 存储]
+---
+
+# 1. Doris
+
+Apache Doris 是一个基于 MPP 架构的高性能、实时的分析型数据库
+
+# 2. 数据存储划分
+
+## 2.1. Table
+在 Doris 中，数据都以表（Table）的形式进行逻辑上的描述。
+
+Doris 支持两层的数据划分。第一层是 Partition，支持 Range 和 List 的划分方式。第二层是 Bucket（Tablet），仅支持 Hash 的划分方式。
+
+也可以仅使用一层分区。使用一层分区时，只支持 Bucket 划分。
+
+## 2.2. Partition
+
+若干个 Partition 组成一个 Table。Partition 可以视为是逻辑上最小的管理单元。数据的导入与删除，都可以或仅能针对一个 Partition 进行。
+
+### 2.2.1. Range 分区
+```
+PARTITION BY RANGE(`date`, `id`)
+(
+    PARTITION `p201701_1000` VALUES LESS THAN ("2017-02-01", "1000"),
+    PARTITION `p201702_2000` VALUES LESS THAN ("2017-03-01", "2000"),
+    PARTITION `p201703_all`  VALUES LESS THAN ("2017-04-01")
+)
+```
+### 2.2.2. List 分区
+```
+PARTITION BY LIST(`id`, `city`)
+(
+    PARTITION `p1_city` VALUES IN (("1", "Beijing"), ("1", "Shanghai")),
+    PARTITION `p2_city` VALUES IN (("2", "Beijing"), ("2", "Shanghai")),
+    PARTITION `p3_city` VALUES IN (("3", "Beijing"), ("3", "Shanghai"))
+)
+```
+
+## 2.3. Bucket -> Tablet
+在 Doris 的存储引擎中，用户数据被水平划分为若干个数据分片（Tablet，也称作数据分桶）。每个 Tablet 包含若干数据行。各个 Tablet 之间的数据没有交集，并且在物理上是独立存储的。
+
+多个 Tablet 在逻辑上归属于不同的分区（Partition）。一个 Tablet 只属于一个 Partition。而一个 Partition 包含若干个 Tablet。因为 **Tablet 在物理上是独立存储的** ，所以可以视为 Partition 在物理上也是独立。**Tablet 是数据移动、复制等操作的最小物理存储单元**。
+
+## 2.4. 关于 Partition 和 Bucket 的数量和数据量的建议
+
+ - 一个表的 Tablet 总数量等于 (Partition num * Bucket num)。
+ - 一个表的 Tablet 数量，在不考虑扩容的情况下，推荐略多于整个集群的磁盘数量。
+ - 单个 Tablet 的数据量理论上没有上下界，但建议在 1G - 10G 的范围内。如果单个 Tablet 数据量过小，则数据的聚合效果不佳，且元数据管理压力大。如果数据量过大，则不利于副本的迁移、补齐，且会增加 Schema Change 或者 Rollup 操作失败重试的代价（这些操作失败重试的粒度是 Tablet）。
+ - 当 Tablet 的数据量原则和数量原则冲突时，建议优先考虑数据量原则。
+ - 在建表时，每个分区的 Bucket 数量统一指定。但是在动态增加分区时（ADD PARTITION），可以单独指定新分区的 Bucket 数量。可以利用这个功能方便的应对数据缩小或膨胀。
+ - 一个 Partition 的 Bucket 数量一旦指定，不可更改。所以在确定 Bucket 数量时，需要预先考虑集群扩容的情况。比如当前只有 3 台 host，每台 host 有 1 块盘。如果 Bucket 的数量只设置为 3 或更小，那么后期即使再增加机器，也不能提高并发度。
+ - 举一些例子：假设在有10台BE，每台BE一块磁盘的情况下。如果一个表总大小为 500MB，则可以考虑4-8个分片。5GB：8-16个分片。50GB：32个分片。500GB：建议分区，每个分区大小在 50GB 左右，每个分区16-32个分片。5TB：建议分区，每个分区大小在 50GB 左右，每个分区16-32个分片。
+
+# 3. 数据模型
+
+## 3.1. Aggregate 模型
+## 3.2. Unique 模型
+## 3.3. Duplicate 模型
+
+## 3.4. key 列
+Duplicate、Aggregate、Unique 模型，都会在建表指定 key 列，然而实际上是有所区别的：对于 Duplicate 模型，表的key列，可以认为只是 “排序列”，并非起到唯一标识的作用。而 Aggregate、Unique 模型这种聚合类型的表，key 列是兼顾 “排序列” 和 “唯一标识列”，是真正意义上的“ key 列”。
+
+# 4. 索引
+
+## 4.1. 前缀索引
+    Base表创建时，已经指定了列顺序，一个表只能有一种前缀索引。
+    通过ROLLUP表人为调整列顺序，创建新的前缀索引。
+## 4.2. 二级索引
+###  4.2.1. BloomFilter索引
+### 4.2.2. Bitmap 索引
+
+# 5. 修改
+
+## 5.1. Update
+
+update 命令只能在 Unique 数据模型的表中执行。
+
+利用查询引擎自身的 where 过滤逻辑，从待更新表中筛选出需要被更新的行。再利用 Unique 模型自带的 Value 列新数据替换旧数据的逻辑，将待更新的行变更后，再重新插入到表中，从而实现行级别更新。
+
+Update 语法在Doris中是一个同步语法，即 Update 语句执行成功，更新操作也就完成了，数据是可见的。
+
+## 5.2. Delete 
+
+# 6. 事务
+Doris 中的所有导入操作都有原子性保证，即一个导入作业中的数据要么全部成功，要么全部失败。不会出现仅部分数据导入成功的情况。
+
+# 7. 视图
+通过ROLLUP实现，在Base表基础上，创建ROLLUP表。并且ROLLUP表的数据是独立存储的。
+
+**ROLLUP表起到索引和聚合的作用**
+
+ - ROLLUP 是附属于 Base 表的，可以看做是 Base 表的一种辅助数据结构。用户可以在 Base 表的基础上，创建或删除 ROLLUP，但是不能在查询中显式的指定查询某 ROLLUP。是否命中 ROLLUP 完全由 Doris 系统自动决定。
+ - ROLLUP 的数据是独立物理存储的。因此，创建的 ROLLUP 越多，占用的磁盘空间也就越大。同时对导入速度也会有影响（导入的ETL阶段会自动产生所有 ROLLUP 的数据），但是不会降低查询效率（只会更好）。
+ - ROLLUP 的数据更新与 Base 表是完全同步的。用户无需关心这个问题。
+ - ROLLUP 中列的聚合方式，与 Base 表完全相同。在创建 ROLLUP 无需指定，也不能修改。
+ - 查询能否命中 ROLLUP 的一个必要条件（非充分条件）是，查询所涉及的所有列（包括 select list 和 where 中的查询条件列等）都存在于该 ROLLUP 的列中。否则，查询只能命中 Base 表。
+ - 某些类型的查询（如 count(*)）在任何条件下，都无法命中 ROLLUP。具体参见接下来的 聚合模型的局限性 一节。
+ - 可以通过 EXPLAIN your_sql; 命令获得查询执行计划，在执行计划中，查看是否命中 ROLLUP。
+ - 可以通过 DESC tbl_name ALL; 语句显示 Base 表和所有已创建完成的 ROLLUP。
+
+
+执行引擎在使用时，会自动判断并使用ROLLUP表。 无需手动指定。
